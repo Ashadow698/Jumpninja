@@ -58,6 +58,7 @@ class Player {
     this.x += this.vx;
     this.y += this.vy;
 
+    // wrap around
     if (this.x < -this.width) this.x = canvas.width;
     if (this.x > canvas.width) this.x = -this.width;
   }
@@ -86,7 +87,7 @@ class Platform {
   update(dy) {
     if (gameStarted) this.y += dy;
     if (this.y > canvas.height) {
-      this.y = -Math.random() * canvas.height / 2;
+      this.y = -Math.random() * canvas.height / 4;
       this.x = Math.random() * (canvas.width - this.width);
     }
   }
@@ -97,15 +98,18 @@ class Platform {
   }
 }
 
+// Generate platforms with safer spacing
 let platforms = [];
-let platformGap = 80;
-for (let i = 0; i < 12; i++) {
+let platformGap = 90;
+let lastX = canvas.width / 2;
+for (let i = 0; i < 15; i++) {
   let y = canvas.height - i * platformGap;
-  let x = Math.random() * (canvas.width - 100);
+  let dx = (Math.random() - 0.5) * 200;
+  let x = Math.min(canvas.width - 100, Math.max(0, lastX + dx));
   platforms.push(new Platform(x, y));
+  lastX = x;
 }
 
-// Pick the 3rd platform from bottom to spawn player on
 const startPlat = platforms[2];
 const player = new Player(startPlat.x + 35, startPlat.y);
 
@@ -134,19 +138,16 @@ function gameLoop() {
 
   if (keys[' '] || keys['ArrowUp']) player.jump();
 
-  // Scroll camera when player goes too high
-  let cameraScroll = 0;
-  if (gameStarted && player.y < canvas.height / 3) {
-    cameraScroll = canvas.height / 3 - player.y;
-    player.y = canvas.height / 3;
-    score += cameraScroll;
-  }
+  // Continuous upward scroll if game started
+  let cameraScroll = gameStarted ? -1.5 - Math.min(2, score / 5000) : 0;
+  if (gameStarted) score += -cameraScroll;
 
   platforms.forEach(p => {
-    p.update(cameraScroll);
+    p.update(-cameraScroll);
     p.draw();
   });
 
+  player.y += -cameraScroll; // keep player in sync with scroll
   player.draw();
 
   // Score
