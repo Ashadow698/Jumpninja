@@ -24,15 +24,22 @@ canvas.width = innerWidth;
 canvas.height = innerHeight;
 
 let keys = {};
-document.addEventListener('keydown', e => keys[e.key] = true);
+let gameStarted = false;
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (!gameStarted && ['ArrowLeft', 'ArrowRight', 'ArrowUp'].includes(e.key)) {
+    gameStarted = true;
+  }
+});
 document.addEventListener('keyup', e => keys[e.key] = false);
 
 class Player {
-  constructor() {
+  constructor(x, y) {
     this.width = 30;
     this.height = 30;
-    this.x = canvas.width / 2 - this.width / 2;
-    this.y = canvas.height - this.height - 100;
+    this.x = x;
+    this.y = y - this.height;
     this.vx = 0;
     this.vy = 0;
     this.speed = 5;
@@ -41,6 +48,8 @@ class Player {
   }
 
   update() {
+    if (!gameStarted) return;
+
     if (keys['ArrowLeft']) this.vx = -this.speed;
     else if (keys['ArrowRight']) this.vx = this.speed;
     else this.vx = 0;
@@ -75,7 +84,7 @@ class Platform {
   }
 
   update(dy) {
-    this.y += dy;
+    if (gameStarted) this.y += dy;
     if (this.y > canvas.height) {
       this.y = -Math.random() * canvas.height / 2;
       this.x = Math.random() * (canvas.width - this.width);
@@ -88,23 +97,26 @@ class Platform {
   }
 }
 
-const player = new Player();
 let platforms = [];
-let score = 0;
 let platformGap = 80;
-
 for (let i = 0; i < 12; i++) {
   let y = canvas.height - i * platformGap;
   let x = Math.random() * (canvas.width - 100);
   platforms.push(new Platform(x, y));
 }
 
+// Pick the 3rd platform from bottom to spawn player on
+const startPlat = platforms[2];
+const player = new Player(startPlat.x + 35, startPlat.y);
+
+let score = 0;
+
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   player.update();
 
-  // Collision
+  // Check collisions
   player.onGround = false;
   platforms.forEach(p => {
     if (
@@ -120,13 +132,12 @@ function gameLoop() {
     }
   });
 
-  // Jump if space or up arrow
   if (keys[' '] || keys['ArrowUp']) player.jump();
 
-  // Camera scroll
+  // Scroll camera when player goes too high
   let cameraScroll = 0;
-  if (player.y < canvas.height / 3) {
-    cameraScroll = (canvas.height / 3 - player.y);
+  if (gameStarted && player.y < canvas.height / 3) {
+    cameraScroll = canvas.height / 3 - player.y;
     player.y = canvas.height / 3;
     score += cameraScroll;
   }
@@ -142,6 +153,12 @@ function gameLoop() {
   ctx.fillStyle = 'white';
   ctx.font = '20px Arial';
   ctx.fillText('Height: ' + Math.floor(score), 20, 40);
+
+  if (!gameStarted) {
+    ctx.fillStyle = 'white';
+    ctx.font = '24px Arial';
+    ctx.fillText('Press arrow keys to start', canvas.width / 2 - 130, canvas.height / 2);
+  }
 
   requestAnimationFrame(gameLoop);
 }
