@@ -12,7 +12,6 @@
     }
     canvas {
       display: block;
-      background: transparent;
     }
   </style>
 </head>
@@ -33,7 +32,7 @@ class Player {
     this.width = 30;
     this.height = 30;
     this.x = canvas.width / 2 - this.width / 2;
-    this.y = canvas.height - this.height - 10;
+    this.y = canvas.height - this.height - 100;
     this.vx = 0;
     this.vy = 0;
     this.speed = 5;
@@ -50,7 +49,6 @@ class Player {
     this.x += this.vx;
     this.y += this.vy;
 
-    // Wrap around screen horizontally
     if (this.x < -this.width) this.x = canvas.width;
     if (this.x > canvas.width) this.x = -this.width;
   }
@@ -79,7 +77,7 @@ class Platform {
   update(dy) {
     this.y += dy;
     if (this.y > canvas.height) {
-      this.y = -20;
+      this.y = -Math.random() * canvas.height / 2;
       this.x = Math.random() * (canvas.width - this.width);
     }
   }
@@ -93,16 +91,17 @@ class Platform {
 const player = new Player();
 let platforms = [];
 let score = 0;
+let platformGap = 80;
 
-for (let i = 0; i < 10; i++) {
-  platforms.push(new Platform(Math.random() * (canvas.width - 100), canvas.height - i * 100));
+for (let i = 0; i < 12; i++) {
+  let y = canvas.height - i * platformGap;
+  let x = Math.random() * (canvas.width - 100);
+  platforms.push(new Platform(x, y));
 }
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Update and draw platforms
-  let cameraScroll = 0;
   player.update();
 
   // Collision
@@ -121,10 +120,11 @@ function gameLoop() {
     }
   });
 
-  // Jump
-  if (keys[' ']) player.jump();
+  // Jump if space or up arrow
+  if (keys[' '] || keys['ArrowUp']) player.jump();
 
-  // Camera scroll when player goes too high
+  // Camera scroll
+  let cameraScroll = 0;
   if (player.y < canvas.height / 3) {
     cameraScroll = (canvas.height / 3 - player.y);
     player.y = canvas.height / 3;
